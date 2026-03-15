@@ -1,4 +1,30 @@
-import { Box, Nav, Badge } from "@/components/wireframe/WireframeShell";
+import PageShell from "@/components/ui/PageShell";
+import Card from "@/components/ui/Card";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import ProgressBar from "@/components/ui/ProgressBar";
+import StatCard from "@/components/ui/StatCard";
+import { USER_STATS } from "@/lib/constants";
+
+const { streak, words, grammarPoints, hoursWatched } = USER_STATS;
+
+const stats = [
+  { label: "Total Words", value: String(words), sub: "+12 this week", icon: "📚", color: "var(--primary)" },
+  { label: "Grammar Points", value: String(grammarPoints), sub: "+3 this week", icon: "✍️", color: "var(--purple)" },
+  { label: "Day Streak", value: String(streak), sub: "best: 21 days", icon: "🔥", color: "var(--gold)" },
+  { label: "Study Time", value: `${hoursWatched}h`, sub: "1.2h this week", icon: "⏱", color: "var(--green)" },
+];
+
+const jlptLevels = [
+  { level: "N5", count: 180, total: 800, color: "var(--green)" },
+  { level: "N4", count: 120, total: 1500, color: "var(--primary)" },
+  { level: "N3", count: 42, total: 2250, color: "var(--purple)" },
+];
+
+const animeProgress = [
+  { name: "Demon Slayer", jp: "鬼滅の刃", eps: 12, total: 26, words: 284, emoji: "🗡️" },
+  { name: "Spy x Family", jp: "スパイファミリー", eps: 3, total: 25, words: 58, emoji: "🕵️" },
+];
 
 const topWords = [
   { jp: "鬼", meaning: "demon", seen: 42 },
@@ -8,107 +34,162 @@ const topWords = [
   { jp: "仲間", meaning: "comrade", seen: 24 },
 ];
 
-const animeProgress = [
-  { name: "Demon Slayer", eps: 12, total: 26, words: 284 },
-  { name: "Spy x Family", eps: 3, total: 25, words: 58 },
-];
+// Seeded pseudo-random for SSR-safe heatmap
+function seededRand(seed: number) {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
+
+const heatmapData = Array.from({ length: 12 }, (_, week) =>
+  Array.from({ length: 7 }, (_, day) => {
+    if (week >= 10) return 0;
+    const r = seededRand(week * 7 + day);
+    return r > 0.4 ? Math.floor(r * 3) + 1 : 0;
+  })
+);
+
+const heatmapColor = (level: number) => {
+  if (level === 0) return "var(--surface-3)";
+  if (level === 1) return "rgba(233,69,96,0.25)";
+  if (level === 2) return "rgba(233,69,96,0.55)";
+  return "var(--primary)";
+};
 
 export default function Progress() {
   return (
-    <div className="min-h-screen bg-white font-mono flex flex-col">
-      <Nav active="Progress" />
+    <PageShell>
+      <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
+        Your Progress
+      </h1>
 
-      <main className="flex-1 p-8 max-w-4xl mx-auto w-full flex flex-col gap-8">
-        <h1 className="text-2xl font-bold text-gray-800">Your Progress</h1>
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} icon={s.icon} color={s.color} />
+        ))}
+      </div>
 
-        {/* Top stats */}
-        <div className="grid grid-cols-4 gap-4">
-          {[
-            { label: "Total Words", value: "342", sub: "+12 this week" },
-            { label: "Grammar Points", value: "28", sub: "+3 this week" },
-            { label: "Day Streak", value: "14 🔥", sub: "best: 21" },
-            { label: "Study Time", value: "9.5h", sub: "1.2h this week" },
-          ].map((s) => (
-            <div key={s.label} className="border-2 border-dashed border-gray-400 rounded-lg p-4">
-              <div className="text-xs text-gray-400 uppercase tracking-widest">{s.label}</div>
-              <div className="text-2xl font-bold text-gray-800 mt-1">{s.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{s.sub}</div>
+      <div className="grid grid-cols-2 gap-6">
+        {/* JLPT level breakdown */}
+        <Card>
+          <h2 className="font-semibold text-sm mb-4" style={{ color: "var(--text)" }}>
+            Words by JLPT Level
+          </h2>
+          <div className="flex flex-col gap-4">
+            {jlptLevels.map((l) => (
+              <div key={l.level}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Badge text={l.level} variant="level" />
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    {l.count} / {l.total}
+                  </span>
+                </div>
+                <ProgressBar value={l.count} max={l.total} color={l.color} />
+              </div>
+            ))}
+          </div>
+          <div
+            className="mt-4 pt-4 text-xs"
+            style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}
+          >
+            📈 At this pace you'll reach N4 in ~4 months
+          </div>
+        </Card>
+
+        {/* Anime progress */}
+        <Card>
+          <h2 className="font-semibold text-sm mb-4" style={{ color: "var(--text)" }}>
+            Anime Progress
+          </h2>
+          <div className="flex flex-col gap-4">
+            {animeProgress.map((a) => (
+              <div key={a.name} className="flex gap-3 items-start">
+                <div
+                  className="w-12 h-16 rounded-lg shrink-0 flex items-center justify-center text-2xl"
+                  style={{ background: "var(--surface-3)" }}
+                >
+                  {a.emoji}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+                    {a.name}
+                  </div>
+                  <div className="text-xs mt-0.5 mb-2" style={{ color: "var(--text-muted)" }}>
+                    {a.jp} · {a.words} words learned
+                  </div>
+                  <ProgressBar value={a.eps} max={a.total} />
+                  <div className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                    {a.eps} / {a.total} episodes
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4">
+            <Button variant="ghost" fullWidth>+ Add another anime</Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* Most seen words */}
+      <Card>
+        <h2 className="font-semibold text-sm mb-4" style={{ color: "var(--text)" }}>
+          Most Seen Words
+        </h2>
+        <div className="flex flex-col gap-3">
+          {topWords.map((w, i) => (
+            <div key={w.jp} className="flex items-center gap-4">
+              <span className="text-xs w-4 text-center font-mono" style={{ color: "var(--text-muted)" }}>
+                {i + 1}
+              </span>
+              <span className="text-2xl w-10 text-center" style={{ color: "var(--text)" }}>
+                {w.jp}
+              </span>
+              <span className="text-sm flex-1" style={{ color: "var(--text-muted)" }}>
+                {w.meaning}
+              </span>
+              <div className="w-36">
+                <ProgressBar value={w.seen} max={topWords[0].seen} color="var(--primary)" height={4} />
+              </div>
+              <span className="text-xs w-10 text-right" style={{ color: "var(--text-muted)" }}>
+                ×{w.seen}
+              </span>
             </div>
           ))}
         </div>
+      </Card>
 
-        <div className="grid grid-cols-2 gap-6">
-          {/* JLPT level breakdown */}
-          <div className="border-2 border-dashed border-gray-400 rounded-lg p-5 flex flex-col gap-4">
-            <h2 className="font-bold text-gray-800">Words by JLPT Level</h2>
-            {[
-              { level: "N5", count: 180, total: 800, color: "bg-gray-800" },
-              { level: "N4", count: 120, total: 1500, color: "bg-gray-500" },
-              { level: "N3", count: 42, total: 3750, color: "bg-gray-300" },
-            ].map((l) => (
-              <div key={l.level} className="flex items-center gap-3">
-                <Badge text={l.level} />
-                <div className="flex-1 bg-gray-100 rounded-full h-2">
-                  <div className={`${l.color} h-full rounded-full`} style={{ width: `${(l.count / l.total) * 100}%` }} />
-                </div>
-                <span className="text-xs text-gray-500 w-16 text-right">{l.count} / {l.total}</span>
-              </div>
-            ))}
-            <div className="border-t border-dashed border-gray-200 pt-3 text-xs text-gray-400">
-              At this pace you'll reach N4 in ~4 months
+      {/* Activity heatmap */}
+      <Card>
+        <h2 className="font-semibold text-sm mb-4" style={{ color: "var(--text)" }}>
+          Study Activity
+        </h2>
+        <div className="flex gap-1">
+          {heatmapData.map((week, wi) => (
+            <div key={wi} className="flex flex-col gap-1">
+              {week.map((level, di) => (
+                <div
+                  key={di}
+                  className="w-3 h-3 rounded-sm"
+                  style={{ background: heatmapColor(level) }}
+                  title={level > 0 ? `${level * 15} min studied` : "No activity"}
+                />
+              ))}
             </div>
-          </div>
-
-          {/* Anime progress */}
-          <div className="border-2 border-dashed border-gray-400 rounded-lg p-5 flex flex-col gap-4">
-            <h2 className="font-bold text-gray-800">Anime Progress</h2>
-            {animeProgress.map((a) => (
-              <div key={a.name} className="flex gap-3 items-start">
-                <Box label="poster" className="w-10 h-14 shrink-0" />
-                <div className="flex-1">
-                  <div className="font-bold text-gray-700 text-sm">{a.name}</div>
-                  <div className="text-xs text-gray-400">{a.words} words learned</div>
-                  <div className="mt-1 bg-gray-100 rounded-full h-1.5">
-                    <div className="bg-gray-800 h-full rounded-full" style={{ width: `${(a.eps / a.total) * 100}%` }} />
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{a.eps} / {a.total} episodes</div>
-                </div>
-              </div>
+          ))}
+        </div>
+        <div className="flex justify-between text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+          <span>12 weeks ago</span>
+          <div className="flex items-center gap-1.5">
+            <span>Less</span>
+            {[0, 1, 2, 3].map((l) => (
+              <div key={l} className="w-3 h-3 rounded-sm" style={{ background: heatmapColor(l) }} />
             ))}
-            <button className="border-2 border-dashed border-gray-400 text-gray-500 text-sm py-2 rounded hover:bg-gray-50">
-              + Add another anime
-            </button>
+            <span>More</span>
           </div>
+          <span>today</span>
         </div>
-
-        {/* Most seen words */}
-        <div className="border-2 border-dashed border-gray-400 rounded-lg p-5 flex flex-col gap-3">
-          <h2 className="font-bold text-gray-800">Most Seen Words</h2>
-          <div className="flex flex-col gap-2">
-            {topWords.map((w, i) => (
-              <div key={w.jp} className="flex items-center gap-4">
-                <span className="text-xs text-gray-400 w-4">{i + 1}</span>
-                <span className="text-xl text-gray-800 w-10">{w.jp}</span>
-                <span className="text-sm text-gray-500 flex-1">{w.meaning}</span>
-                <div className="w-32 bg-gray-100 rounded-full h-2">
-                  <div className="bg-gray-800 h-full rounded-full" style={{ width: `${(w.seen / 42) * 100}%` }} />
-                </div>
-                <span className="text-xs text-gray-400 w-16 text-right">×{w.seen}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Weekly heatmap */}
-        <div className="border-2 border-dashed border-gray-400 rounded-lg p-5">
-          <h2 className="font-bold text-gray-800 mb-4">Study Activity</h2>
-          <Box label="activity heatmap (GitHub-style, 12 weeks)" className="w-full h-20" />
-          <div className="flex justify-between text-xs text-gray-400 mt-2">
-            <span>12 weeks ago</span>
-            <span>today</span>
-          </div>
-        </div>
-      </main>
-    </div>
+      </Card>
+    </PageShell>
   );
 }
